@@ -1,0 +1,77 @@
+Project: EastAtWest Restaurant – Mobile Application
+
+Objective:  
+Develop a multilingual mobile application (FR – default, EN, NL) to complement the existing website (https://www.eastatwest.com), enhancing customer interaction via reservations, menu browsing, and takeaway ordering.
+
+---
+
+Application Structure – Main Pages
+
+1. Homepage
+   - Welcome message
+   - About Us section
+   - Image gallery
+   - Contact information
+   - Language switcher (FR/EN/NL)
+
+2. Menu Page
+   - Categorized menu items (e.g., Entrées, Plats, Desserts, Boissons)
+   - Each item includes:
+     - Image
+     - Name
+     - Description
+     - Price
+   - Optional filter by dietary preference (vegan, halal, gluten-free)
+
+3. Reservations Page
+   - Form with required fields:
+     - Date picker
+     - Name
+     - Email (mandatory)
+     - Phone number (mandatory)
+     - Time slot (Start time – End time)
+     - Number of guests (mandatory)
+     - Additional notes (optional)
+   - Confirmation button
+   - Real-time availability check (optional enhancement)
+   - Upon submission:
+     - Show success message (if 1–6 people)
+- Send confirmation email (with unique reservation number + summary)
+     - Store all data in reservation database
+
+4. Takeaway (Boutique) Page
+   - Online ordering system
+     - View dishes (as in Menu page)
+     - Add to cart
+     - Choose delivery/pick-up
+     - Choose payment method:
+       - Card (credit/debit), PayPal
+       - Cash on delivery/pick-up
+     - Address input for delivery
+   - Checkout and confirmation screen
+   - Order summary sent via email
+   - Store data in order database
+
+---
+
+Supporting Components
+
+- Multilingual Support
+  - Content available in French (default), English, Dutch
+  - Language toggle button in navigation
+
+- Databases Needed
+  - Users/Customers DB (for names, contact details, preferences)
+  - Reservations DB (with timestamps, guest info, status)
+  - Orders DB (product, payment, delivery info)
+  - Menu DB (for easy content updates)
+
+- Email System
+  - Automated confirmation emails for reservations & orders
+  - Templates for each language
+
+- Admin Back Office (optional suggestion)
+  - View & manage reservations
+  - Manage takeaway orders
+  - Update menu content
+  - Analytics dashboard
