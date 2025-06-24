@@ -66,8 +66,8 @@ export default function ReservationsScreen() {
       Alert.alert('Error', 'Please enter start time');
       return;
     }
-    if (formData.guests < 1 || formData.guests > 22) {
-      Alert.alert('Error', 'Number of guests must be between 1 and 22');
+    if (formData.guests < 1 || formData.guests > 6) {
+      Alert.alert('Error', 'Number of guests must be between 1 and 6');
       return;
     }
 
@@ -454,7 +454,7 @@ export default function ReservationsScreen() {
               <Text style={styles.guestCount}>{formData.guests}</Text>
               <TouchableOpacity
                 style={styles.guestButton}
-                onPress={() => setFormData(prev => ({ ...prev, guests: Math.min(22, prev.guests + 1) }))}
+                onPress={() => setFormData(prev => ({ ...prev, guests: Math.min(6, prev.guests + 1) }))}
               >
                 <Text style={styles.guestButtonText}>+</Text>
               </TouchableOpacity>
