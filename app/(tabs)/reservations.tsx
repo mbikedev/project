@@ -238,36 +238,17 @@ export default function ReservationsScreen() {
       height: 100,
       textAlignVertical: 'top',
     },
-    actionButtons: {
-      flexDirection: 'row',
-      gap: theme.spacing.md,
-      marginTop: theme.spacing.xl,
-    },
     primaryButton: {
-      flex: 2,
       backgroundColor: theme.colors.primary,
       borderRadius: theme.borderRadius.md,
       padding: theme.spacing.lg,
       alignItems: 'center',
-    },
-    secondaryButton: {
-      flex: 1,
-      backgroundColor: theme.colors.surface,
-      borderWidth: 2,
-      borderColor: theme.colors.primary,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.lg,
-      alignItems: 'center',
+      marginTop: theme.spacing.xl,
     },
     primaryButtonText: {
       fontSize: 16,
       fontFamily: theme.fonts.bodyBold,
       color: '#FFFFFF',
-    },
-    secondaryButtonText: {
-      fontSize: 16,
-      fontFamily: theme.fonts.bodyBold,
-      color: theme.colors.primary,
     },
     businessHoursSection: {
       backgroundColor: theme.colors.surface,
@@ -466,20 +447,15 @@ export default function ReservationsScreen() {
             />
           </View>
 
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              <Text style={styles.primaryButtonText}>
-                {loading ? 'BOOKING...' : t('reservations.bookTable')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>{t('reservations.request')}</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            <Text style={styles.primaryButtonText}>
+              {loading ? 'BOOKING...' : t('reservations.bookTable')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
