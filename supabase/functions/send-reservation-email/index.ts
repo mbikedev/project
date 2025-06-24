@@ -18,6 +18,9 @@ serve(async (req) => {
     
     console.log('✅ Using configured Resend API key, attempting to send email...')
 
+    // Logo URL - using the uploaded logo
+    const logoUrl = 'https://fvsedygncxbpakjddxej.supabase.co/storage/v1/object/public/assets/logo-copy.webp'
+
     // Email templates by language
     const templates = {
       en: {
@@ -25,6 +28,7 @@ serve(async (req) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FFF8DC;">
             <div style="background: linear-gradient(135deg, #8B4513, #CD853F); padding: 30px; text-align: center;">
+              <img src="${logoUrl}" alt="East At West Logo" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 50%; background: white; padding: 10px;" />
               <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">East At West</h1>
               <p style="color: #FFF8DC; margin: 10px 0 0 0; font-size: 16px;">Authentic Lebanese Cuisine</p>
             </div>
@@ -131,6 +135,7 @@ serve(async (req) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FFF8DC;">
             <div style="background: linear-gradient(135deg, #8B4513, #CD853F); padding: 30px; text-align: center;">
+              <img src="${logoUrl}" alt="East At West Logo" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 50%; background: white; padding: 10px;" />
               <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">East At West</h1>
               <p style="color: #FFF8DC; margin: 10px 0 0 0; font-size: 16px;">Cuisine Libanaise Authentique</p>
             </div>
@@ -223,6 +228,7 @@ serve(async (req) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FFF8DC;">
             <div style="background: linear-gradient(135deg, #8B4513, #CD853F); padding: 30px; text-align: center;">
+              <img src="${logoUrl}" alt="East At West Logo" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 50%; background: white; padding: 10px;" />
               <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">East At West</h1>
               <p style="color: #FFF8DC; margin: 10px 0 0 0; font-size: 16px;">Authentieke Libanese Keuken</p>
             </div>
@@ -323,7 +329,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: 'East At West <noreply@resend.dev>',
+        from: 'East At West <contact@eastatwest.com>',
         to: [reservation.email],
         subject: template.subject,
         html: template.html,
