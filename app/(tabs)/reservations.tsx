@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Header } from '@/components/Header';
 import { Calendar } from '@/components/Calendar';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { TimePickerModal } from '@/components/TimePickerModal';
 import { supabase } from '@/lib/supabase';
 
 export default function ReservationsScreen() {
@@ -15,6 +16,8 @@ export default function ReservationsScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [reservationData, setReservationData] = useState<any>(null);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -25,6 +28,16 @@ export default function ReservationsScreen() {
     guests: 1,
     additionalInfo: '',
   });
+
+  const handleTimeSelect = (time: string, type: 'start' | 'end') => {
+    if (type === 'start') {
+      setFormData(prev => ({ ...prev, startTime: time }));
+      setShowStartTimePicker(false);
+    } else {
+      setFormData(prev => ({ ...prev, endTime: time }));
+      setShowEndTimePicker(false);
+    }
+  };
 
   const handleSubmit = async () => {
     // Validation
@@ -44,8 +57,8 @@ export default function ReservationsScreen() {
       Alert.alert('Error', 'Please enter start time');
       return;
     }
-    if (formData.guests < 1 || formData.guests > 6) {
-      Alert.alert('Error', 'Number of guests must be between 1 and 6');
+    if (formData.guests < 1 || formData.guests > 22) {
+      Alert.alert('Error', 'Number of guests must be between 1 and 22');
       return;
     }
 
@@ -177,6 +190,19 @@ export default function ReservationsScreen() {
     },
     timeInput: {
       flex: 1,
+    },
+    timeButton: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.md,
+      justifyContent: 'center',
+    },
+    timeButtonText: {
+      fontSize: 16,
+      fontFamily: theme.fonts.body,
+      color: formData.startTime || formData.endTime ? theme.colors.text : theme.colors.textSecondary,
     },
     guestSelector: {
       flexDirection: 'row',
@@ -386,22 +412,24 @@ export default function ReservationsScreen() {
             <Text style={styles.label}>{t('reservations.chooseTime')}</Text>
             <View style={styles.timeRow}>
               <View style={styles.timeInput}>
-                <TextInput
-                  style={styles.input}
-                  value={formData.startTime}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, startTime: text }))}
-                  placeholder={t('reservations.timePlaceholder')}
-                  placeholderTextColor={theme.colors.textSecondary}
-                />
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => setShowStartTimePicker(true)}
+                >
+                  <Text style={styles.timeButtonText}>
+                    {formData.startTime || t('reservations.timePlaceholder')}
+                  </Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.timeInput}>
-                <TextInput
-                  style={styles.input}
-                  value={formData.endTime}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, endTime: text }))}
-                  placeholder={t('reservations.untilPlaceholder')}
-                  placeholderTextColor={theme.colors.textSecondary}
-                />
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => setShowEndTimePicker(true)}
+                >
+                  <Text style={styles.timeButtonText}>
+                    {formData.endTime || t('reservations.untilPlaceholder')}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -418,7 +446,7 @@ export default function ReservationsScreen() {
               <Text style={styles.guestCount}>{formData.guests}</Text>
               <TouchableOpacity
                 style={styles.guestButton}
-                onPress={() => setFormData(prev => ({ ...prev, guests: Math.min(6, prev.guests + 1) }))}
+                onPress={() => setFormData(prev => ({ ...prev, guests: Math.min(22, prev.guests + 1) }))}
               >
                 <Text style={styles.guestButtonText}>+</Text>
               </TouchableOpacity>
@@ -452,10 +480,6 @@ export default function ReservationsScreen() {
               <Text style={styles.secondaryButtonText}>{t('reservations.request')}</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={[styles.secondaryButton, { marginTop: theme.spacing.md }]}>
-            <Text style={styles.secondaryButtonText}>{t('reservations.cancellation')}</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -466,6 +490,20 @@ export default function ReservationsScreen() {
           reservationData={reservationData}
         />
       )}
+
+      <TimePickerModal
+        visible={showStartTimePicker}
+        onClose={() => setShowStartTimePicker(false)}
+        onTimeSelect={(time) => handleTimeSelect(time, 'start')}
+        title="Select Start Time"
+      />
+
+      <TimePickerModal
+        visible={showEndTimePicker}
+        onClose={() => setShowEndTimePicker(false)}
+        onTimeSelect={(time) => handleTimeSelect(time, 'end')}
+        title="Select End Time"
+      />
     </SafeAreaView>
   );
 }
