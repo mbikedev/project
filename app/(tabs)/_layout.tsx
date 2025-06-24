@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Menu, Calendar, ShoppingBag } from 'lucide-react-native';
+import { Chrome as Home, Menu, Calendar, ShoppingBag, Settings } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
@@ -63,6 +63,15 @@ export default function TabLayout() {
           title: t('nav.takeaway'),
           tabBarIcon: ({ size, color }) => (
             <ShoppingBag size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          tabBarIcon: ({ size, color }) => (
+            <Settings size={size} color={color} />
           ),
         }}
       />

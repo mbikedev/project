@@ -14,6 +14,7 @@ const resources = {
         menu: 'Menu',
         reservations: 'Reservations',
         takeaway: 'Takeaway',
+        admin: 'Admin',
       },
       // Home page
       home: {
@@ -128,6 +129,7 @@ Lebanese cuisine is a true culinary masterpiece, fusing the best of Mediterranea
         menu: 'Menu',
         reservations: 'Réservations',
         takeaway: 'À Emporter',
+        admin: 'Admin',
       },
       // Home page
       home: {
@@ -241,6 +243,7 @@ Lebanese cuisine is a true culinary masterpiece, fusing the best of Mediterranea
         menu: 'Menu',
         reservations: 'Reserveringen',
         takeaway: 'Afhaal',
+        admin: 'Admin',
       },
       // Home page
       home: {
