@@ -7,7 +7,7 @@ import { Header } from '@/components/Header';
 import { Calendar } from '@/components/Calendar';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { TimePickerModal } from '@/components/TimePickerModal';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function ReservationsScreen() {
   const { theme } = useTheme();
@@ -40,6 +40,12 @@ export default function ReservationsScreen() {
   };
 
   const handleSubmit = async () => {
+    // Check if Supabase is configured
+    if (!isSupabaseConfigured()) {
+      Alert.alert('Configuration Error', 'Supabase is not properly configured. Please check your environment variables.');
+      return;
+    }
+
     // Validation
     if (!formData.name.trim()) {
       Alert.alert('Error', 'Please enter your name');
@@ -70,7 +76,7 @@ export default function ReservationsScreen() {
         : formData.startTime;
 
       // Insert reservation into Supabase
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('reservations')
         .insert([{
           name: formData.name.trim(),
@@ -88,20 +94,31 @@ export default function ReservationsScreen() {
 
       // Send confirmation email
       try {
-        const emailResponse = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/send-reservation-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            reservation: data,
-            language: i18n.language,
-          }),
-        });
+        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+        
+        // Validate environment variables before making the request
+        if (!supabaseUrl || !supabaseAnonKey || 
+            !supabaseUrl.startsWith('https://') || 
+            supabaseUrl.includes('sb_secret_') ||
+            supabaseAnonKey.startsWith('https://')) {
+          console.warn('Invalid Supabase configuration - skipping email');
+        } else {
+          const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+            },
+            body: JSON.stringify({
+              reservation: data,
+              language: i18n.language,
+            }),
+          });
 
-        if (!emailResponse.ok) {
-          console.warn('Failed to send confirmation email');
+          if (!emailResponse.ok) {
+            console.warn('Failed to send confirmation email');
+          }
         }
       } catch (emailError) {
         console.warn('Email sending error:', emailError);

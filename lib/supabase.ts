@@ -1,18 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Provide fallback values to prevent initialization errors
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+// Get environment variables
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-// Only create client if we have real values (not placeholders)
-const hasValidConfig = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder-key';
+// Validate environment variables
+const isValidUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' && parsedUrl.hostname.includes('supabase');
+  } catch {
+    return false;
+  }
+};
 
+const isValidKey = (key: string | undefined): boolean => {
+  return !!(key && key.length > 20 && !key.startsWith('https://'));
+};
+
+// Check if configuration is valid
+const hasValidConfig = isValidUrl(supabaseUrl) && isValidKey(supabaseAnonKey);
+
+// Create client only if configuration is valid
 export const supabase = hasValidConfig 
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl!, supabaseAnonKey!)
   : null;
 
 // Helper function to check if Supabase is configured
 export const isSupabaseConfigured = () => hasValidConfig;
+
+// Log configuration status for debugging
+if (!hasValidConfig) {
+  console.warn('Supabase configuration invalid:', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey,
+    urlValid: isValidUrl(supabaseUrl),
+    keyValid: isValidKey(supabaseAnonKey),
+  });
+}
 
 export type Database = {
   public: {
@@ -20,39 +46,62 @@ export type Database = {
       reservations: {
         Row: {
           id: string;
+          reservation_number: string;
           name: string;
           email: string;
-          phone: string;
+          phone: string | null;
           date: string;
           time: string;
           guests: number;
-          notes: string | null;
-          status: 'pending' | 'confirmed' | 'cancelled';
+          additional_info: string | null;
+          status: 'confirmed' | 'cancelled' | 'completed';
           created_at: string;
         };
         Insert: {
           id?: string;
+          reservation_number?: string;
           name: string;
           email: string;
-          phone: string;
+          phone?: string | null;
           date: string;
           time: string;
           guests: number;
-          notes?: string | null;
-          status?: 'pending' | 'confirmed' | 'cancelled';
+          additional_info?: string | null;
+          status?: 'confirmed' | 'cancelled' | 'completed';
           created_at?: string;
         };
         Update: {
           id?: string;
+          reservation_number?: string;
           name?: string;
           email?: string;
-          phone?: string;
+          phone?: string | null;
           date?: string;
           time?: string;
           guests?: number;
-          notes?: string | null;
-          status?: 'pending' | 'confirmed' | 'cancelled';
+          additional_info?: string | null;
+          status?: 'confirmed' | 'cancelled' | 'completed';
           created_at?: string;
+        };
+      };
+      cancellations: {
+        Row: {
+          id: string;
+          reservation_id: string | null;
+          reason: string | null;
+          cancelled_at: string;
+        };
+        Insert: {
+          id?: string;
+          reservation_id?: string | null;
+          reason?: string | null;
+          cancelled_at?: string;
+        };
+        Update: {
+          id?: string;
+          reservation_id?: string | null;
+          reason?: string | null;
+          cancelled_at?: string;
         };
       };
       menu_items: {
@@ -102,13 +151,3 @@ export type Database = {
     };
   };
 };
-
-async function createReservation(data: any) {
-  if (!supabase) {
-    throw new Error('Supabase is not configured. Please set up your environment variables.');
-  }
-  
-  const { error } = await supabase.from('reservations').insert([data]);
-  if (error) throw error;
-  // Optionally, call your Edge Function for sending email
-}
