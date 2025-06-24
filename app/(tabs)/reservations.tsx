@@ -273,7 +273,12 @@ export default function ReservationsScreen() {
     timeButtonText: {
       fontSize: 16,
       fontFamily: theme.fonts.body,
-      color: formData.startTime || formData.endTime ? theme.colors.text : theme.colors.textSecondary,
+      color: theme.colors.text,
+    },
+    timeButtonPlaceholderText: {
+      fontSize: 16,
+      fontFamily: theme.fonts.body,
+      color: theme.colors.textSecondary,
     },
     guestSelector: {
       flexDirection: 'row',
@@ -475,7 +480,7 @@ export default function ReservationsScreen() {
                   style={styles.timeButton}
                   onPress={() => setShowStartTimePicker(true)}
                 >
-                  <Text style={styles.timeButtonText}>
+                  <Text style={formData.startTime ? styles.timeButtonText : styles.timeButtonPlaceholderText}>
                     {formData.startTime || t('reservations.timePlaceholder')}
                   </Text>
                 </TouchableOpacity>
@@ -485,7 +490,7 @@ export default function ReservationsScreen() {
                   style={styles.timeButton}
                   onPress={() => setShowEndTimePicker(true)}
                 >
-                  <Text style={styles.timeButtonText}>
+                  <Text style={formData.endTime ? styles.timeButtonText : styles.timeButtonPlaceholderText}>
                     {formData.endTime || t('reservations.untilPlaceholder')}
                   </Text>
                 </TouchableOpacity>
