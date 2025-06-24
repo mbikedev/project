@@ -54,7 +54,6 @@ export function Header({ title, showSettings = false, onSettingsPress }: HeaderP
     logo: {
       width: 40,
       height: 40,
-      resizeMode: 'contain',
     },
     title: {
       fontSize: 20,
@@ -88,6 +87,7 @@ export function Header({ title, showSettings = false, onSettingsPress }: HeaderP
         <Image 
           source={require('@/assets/images/logo-trans.webp')}
           style={styles.logo}
+          resizeMode="contain"
         />
         {title && <Text style={styles.title}>{title}</Text>}
       </View>
