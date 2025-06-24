@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
-import { X } from 'lucide-react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface TimePickerModalProps {
@@ -12,122 +11,105 @@ interface TimePickerModalProps {
 
 export function TimePickerModal({ visible, onClose, onTimeSelect, title }: TimePickerModalProps) {
   const { theme } = useTheme();
-  const [selectedHour, setSelectedHour] = useState(12);
-  const [selectedMinute, setSelectedMinute] = useState(0);
 
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const minutes = [0, 15, 30, 45];
-
-  const handleConfirm = () => {
-    const formattedTime = `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
-    onTimeSelect(formattedTime);
+  // Generate time slots for restaurant hours
+  const generateTimeSlots = () => {
+    const slots = [];
+    
+    // Lunch slots (12:00 - 14:00)
+    for (let hour = 12; hour <= 13; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        slots.push(timeString);
+      }
+    }
+    
+    // Dinner slots (18:00 - 22:00)
+    for (let hour = 18; hour <= 21; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        slots.push(timeString);
+      }
+    }
+    
+    return slots;
   };
 
+  const timeSlots = generateTimeSlots();
+
   const styles = StyleSheet.create({
-    modalOverlay: {
+    overlay: {
       flex: 1,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'center',
       alignItems: 'center',
     },
-    modalContent: {
+    modal: {
       backgroundColor: theme.colors.surface,
       borderRadius: theme.borderRadius.lg,
-      padding: theme.spacing.xl,
-      margin: theme.spacing.lg,
-      maxWidth: 350,
-      width: '90%',
-      maxHeight: '80%',
+      padding: theme.spacing.lg,
+      width: '80%',
+      maxHeight: '70%',
     },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: theme.spacing.lg,
+      paddingBottom: theme.spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
     },
     title: {
-      fontSize: 20,
+      fontSize: 18,
       fontFamily: theme.fonts.headingSemiBold,
       color: theme.colors.text,
     },
     closeButton: {
-      padding: theme.spacing.xs,
+      padding: theme.spacing.sm,
     },
-    pickerContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      marginBottom: theme.spacing.xl,
-    },
-    pickerColumn: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    pickerLabel: {
+    closeButtonText: {
       fontSize: 16,
       fontFamily: theme.fonts.bodySemiBold,
-      color: theme.colors.text,
-      marginBottom: theme.spacing.md,
+      color: theme.colors.primary,
     },
-    pickerScroll: {
-      maxHeight: 200,
+    timeGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
     },
-    timeOption: {
-      paddingVertical: theme.spacing.md,
-      paddingHorizontal: theme.spacing.lg,
+    timeSlot: {
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
       borderRadius: theme.borderRadius.md,
-      marginVertical: theme.spacing.xs,
-      minWidth: 60,
+      padding: theme.spacing.md,
+      minWidth: '30%',
       alignItems: 'center',
     },
-    selectedTimeOption: {
-      backgroundColor: theme.colors.primary,
-    },
-    timeOptionText: {
+    timeSlotText: {
       fontSize: 16,
       fontFamily: theme.fonts.body,
       color: theme.colors.text,
     },
-    selectedTimeOptionText: {
-      color: '#FFFFFF',
-      fontFamily: theme.fonts.bodySemiBold,
-    },
-    buttonContainer: {
-      flexDirection: 'row',
-      gap: theme.spacing.md,
-    },
-    cancelButton: {
-      flex: 1,
-      backgroundColor: theme.colors.surface,
-      borderWidth: 2,
-      borderColor: theme.colors.border,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      alignItems: 'center',
-    },
-    confirmButton: {
-      flex: 1,
-      backgroundColor: theme.colors.primary,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      alignItems: 'center',
-    },
-    cancelButtonText: {
+    sectionHeader: {
       fontSize: 16,
-      fontFamily: theme.fonts.bodySemiBold,
-      color: theme.colors.text,
-    },
-    confirmButtonText: {
-      fontSize: 16,
-      fontFamily: theme.fonts.bodySemiBold,
-      color: '#FFFFFF',
-    },
-    separator: {
-      fontSize: 24,
-      fontFamily: theme.fonts.headingBold,
-      color: theme.colors.text,
-      alignSelf: 'center',
+      fontFamily: theme.fonts.headingSemiBold,
+      color: theme.colors.primary,
       marginTop: theme.spacing.lg,
+      marginBottom: theme.spacing.md,
+      textAlign: 'center',
     },
+  });
+
+  const lunchSlots = timeSlots.filter(time => {
+    const hour = parseInt(time.split(':')[0]);
+    return hour >= 12 && hour < 15;
+  });
+
+  const dinnerSlots = timeSlots.filter(time => {
+    const hour = parseInt(time.split(':')[0]);
+    return hour >= 18;
   });
 
   return (
@@ -137,81 +119,42 @@ export function TimePickerModal({ visible, onClose, onTimeSelect, title }: TimeP
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity style={styles.modalContent} activeOpacity={1}>
+      <TouchableOpacity style={styles.overlay} onPress={onClose} activeOpacity={1}>
+        <TouchableOpacity style={styles.modal} activeOpacity={1}>
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <X size={24} color={theme.colors.textSecondary} />
+              <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.pickerContainer}>
-            <View style={styles.pickerColumn}>
-              <Text style={styles.pickerLabel}>Hour</Text>
-              <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
-                {hours.map((hour) => (
-                  <TouchableOpacity
-                    key={hour}
-                    style={[
-                      styles.timeOption,
-                      selectedHour === hour && styles.selectedTimeOption,
-                    ]}
-                    onPress={() => setSelectedHour(hour)}
-                  >
-                    <Text
-                      style={[
-                        styles.timeOptionText,
-                        selectedHour === hour && styles.selectedTimeOptionText,
-                      ]}
-                    >
-                      {hour.toString().padStart(2, '0')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.sectionHeader}>Lunch (12:00 - 14:00)</Text>
+            <View style={styles.timeGrid}>
+              {lunchSlots.map((time) => (
+                <TouchableOpacity
+                  key={`lunch-${time}`}
+                  style={styles.timeSlot}
+                  onPress={() => onTimeSelect(time)}
+                >
+                  <Text style={styles.timeSlotText}>{time}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
-            <Text style={styles.separator}>:</Text>
-
-            <View style={styles.pickerColumn}>
-              <Text style={styles.pickerLabel}>Minute</Text>
-              <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
-                {minutes.map((minute) => (
-                  <TouchableOpacity
-                    key={minute}
-                    style={[
-                      styles.timeOption,
-                      selectedMinute === minute && styles.selectedTimeOption,
-                    ]}
-                    onPress={() => setSelectedMinute(minute)}
-                  >
-                    <Text
-                      style={[
-                        styles.timeOptionText,
-                        selectedMinute === minute && styles.selectedTimeOptionText,
-                      ]}
-                    >
-                      {minute.toString().padStart(2, '0')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+            <Text style={styles.sectionHeader}>Dinner (18:00 - 22:00)</Text>
+            <View style={styles.timeGrid}>
+              {dinnerSlots.map((time) => (
+                <TouchableOpacity
+                  key={`dinner-${time}`}
+                  style={styles.timeSlot}
+                  onPress={() => onTimeSelect(time)}
+                >
+                  <Text style={styles.timeSlotText}>{time}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
+          </ScrollView>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
