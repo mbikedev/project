@@ -41,8 +41,11 @@ export default function ReservationsScreen() {
 
   const handleSubmit = async () => {
     // Check if Supabase is configured
-    if (!isSupabaseConfigured()) {
-      Alert.alert('Configuration Error', 'Supabase is not properly configured. Please check your environment variables.');
+    if (!isSupabaseConfigured() || !supabase) {
+      Alert.alert(
+        'Configuration Error', 
+        'The reservation system is not properly configured. Please contact the restaurant directly at +32 465 20 60 24 to make your reservation.'
+      );
       return;
     }
 
@@ -76,7 +79,7 @@ export default function ReservationsScreen() {
         : formData.startTime;
 
       // Insert reservation into Supabase
-      const { data, error } = await supabase!
+      const { data, error } = await supabase
         .from('reservations')
         .insert([{
           name: formData.name.trim(),
@@ -90,7 +93,10 @@ export default function ReservationsScreen() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       // Send confirmation email
       try {
@@ -98,12 +104,11 @@ export default function ReservationsScreen() {
         const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
         
         // Validate environment variables before making the request
-        if (!supabaseUrl || !supabaseAnonKey || 
-            !supabaseUrl.startsWith('https://') || 
-            supabaseUrl.includes('sb_secret_') ||
-            supabaseAnonKey.startsWith('https://')) {
-          console.warn('Invalid Supabase configuration - skipping email');
-        } else {
+        if (supabaseUrl && supabaseAnonKey && 
+            supabaseUrl.startsWith('https://') && 
+            !supabaseUrl.includes('sb_secret_') &&
+            !supabaseAnonKey.startsWith('https://')) {
+          
           const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
             method: 'POST',
             headers: {
@@ -117,8 +122,10 @@ export default function ReservationsScreen() {
           });
 
           if (!emailResponse.ok) {
-            console.warn('Failed to send confirmation email');
+            console.warn('Failed to send confirmation email:', await emailResponse.text());
           }
+        } else {
+          console.warn('Email service not configured - skipping confirmation email');
         }
       } catch (emailError) {
         console.warn('Email sending error:', emailError);
@@ -142,7 +149,10 @@ export default function ReservationsScreen() {
 
     } catch (error) {
       console.error('Error submitting reservation:', error);
-      Alert.alert('Error', t('reservations.error'));
+      Alert.alert(
+        'Reservation Error', 
+        'Unable to process your reservation at this time. Please try again or contact us directly at +32 465 20 60 24.'
+      );
     } finally {
       setLoading(false);
     }
