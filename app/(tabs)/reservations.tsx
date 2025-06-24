@@ -1,65 +1,115 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Clock, Users, MessageSquare, Info } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Header } from '@/components/Header';
+import { Calendar } from '@/components/Calendar';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
-
-export const supabaseClient = createClient(
-  'https://YOUR_PROJECT_ID.supabase.co',
-  'YOUR_PUBLIC_ANON_KEY'
-);
 
 export default function ReservationsScreen() {
   const { theme } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [reservationData, setReservationData] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    date: '',
-    time: '',
-    guests: '2',
-    notes: '',
+    startTime: '',
+    endTime: '',
+    guests: 1,
+    additionalInfo: '',
   });
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.email || !formData.date || !formData.time) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    // Validation
+    if (!formData.name.trim()) {
+      Alert.alert('Error', 'Please enter your name');
+      return;
+    }
+    if (!formData.email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+    if (!selectedDate) {
+      Alert.alert('Error', 'Please select a date');
+      return;
+    }
+    if (!formData.startTime.trim()) {
+      Alert.alert('Error', 'Please enter start time');
+      return;
+    }
+    if (formData.guests < 1 || formData.guests > 6) {
+      Alert.alert('Error', 'Number of guests must be between 1 and 6');
       return;
     }
 
     setLoading(true);
     try {
-      // For now, just show success message. In production, uncomment the Supabase insert
-      // const { error } = await supabase
-      //   .from('reservations')
-      //   .insert([{
-      //     name: formData.name,
-      //     email: formData.email,
-      //     phone: formData.phone,
-      //     date: formData.date,
-      //     time: formData.time,
-      //     guests: parseInt(formData.guests),
-      //     notes: formData.notes,
-      //   }]);
+      // Format the time for storage
+      const timeString = formData.endTime 
+        ? `${formData.startTime} - ${formData.endTime}`
+        : formData.startTime;
 
-      // if (error) throw error;
+      // Insert reservation into Supabase
+      const { data, error } = await supabase
+        .from('reservations')
+        .insert([{
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim() || null,
+          date: selectedDate.toISOString().split('T')[0],
+          time: timeString,
+          guests: formData.guests,
+          additional_info: formData.additionalInfo.trim() || null,
+        }])
+        .select()
+        .single();
 
-      Alert.alert('Success', t('reservations.success'));
+      if (error) throw error;
+
+      // Send confirmation email
+      try {
+        const emailResponse = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/send-reservation-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            reservation: data,
+            language: i18n.language,
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          console.warn('Failed to send confirmation email');
+        }
+      } catch (emailError) {
+        console.warn('Email sending error:', emailError);
+      }
+
+      // Show confirmation modal
+      setReservationData(data);
+      setShowConfirmation(true);
+
+      // Reset form
       setFormData({
         name: '',
         email: '',
         phone: '',
-        date: '',
-        time: '',
-        guests: '2',
-        notes: '',
+        startTime: '',
+        endTime: '',
+        guests: 1,
+        additionalInfo: '',
       });
+      setSelectedDate(null);
+
     } catch (error) {
       console.error('Error submitting reservation:', error);
       Alert.alert('Error', t('reservations.error'));
@@ -83,17 +133,115 @@ export default function ReservationsScreen() {
       borderBottomColor: theme.colors.border,
     },
     title: {
-      fontSize: 28,
-      textAlign: 'center',
+      fontSize: 24,
       fontFamily: theme.fonts.headingBold,
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    formContainer: {
+      padding: theme.spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: theme.fonts.headingSemiBold,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.md,
+      marginTop: theme.spacing.lg,
+    },
+    calendarContainer: {
+      marginBottom: theme.spacing.lg,
+    },
+    inputGroup: {
+      marginBottom: theme.spacing.lg,
+    },
+    label: {
+      fontSize: 16,
+      fontFamily: theme.fonts.bodySemiBold,
       color: theme.colors.text,
       marginBottom: theme.spacing.sm,
     },
-    subtitle: {
+    input: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.md,
       fontSize: 16,
-      textAlign: 'center',
       fontFamily: theme.fonts.body,
-      color: theme.colors.textSecondary,
+      color: theme.colors.text,
+    },
+    timeRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+    },
+    timeInput: {
+      flex: 1,
+    },
+    guestSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.md,
+    },
+    guestButton: {
+      backgroundColor: theme.colors.primary,
+      borderRadius: theme.borderRadius.sm,
+      width: 32,
+      height: 32,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    guestButtonText: {
+      fontSize: 18,
+      fontFamily: theme.fonts.bodyBold,
+      color: '#FFFFFF',
+    },
+    guestCount: {
+      fontSize: 18,
+      fontFamily: theme.fonts.bodySemiBold,
+      color: theme.colors.text,
+      marginHorizontal: theme.spacing.lg,
+      minWidth: 30,
+      textAlign: 'center',
+    },
+    textArea: {
+      height: 100,
+      textAlignVertical: 'top',
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+      marginTop: theme.spacing.xl,
+    },
+    primaryButton: {
+      flex: 2,
+      backgroundColor: theme.colors.primary,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.lg,
+      alignItems: 'center',
+    },
+    secondaryButton: {
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+      borderRadius: theme.borderRadius.md,
+      padding: theme.spacing.lg,
+      alignItems: 'center',
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontFamily: theme.fonts.bodyBold,
+      color: '#FFFFFF',
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontFamily: theme.fonts.bodyBold,
+      color: theme.colors.primary,
     },
     businessHoursSection: {
       backgroundColor: theme.colors.surface,
@@ -150,84 +298,6 @@ export default function ReservationsScreen() {
       textAlign: 'center',
       marginTop: theme.spacing.xs,
     },
-    formContainer: {
-      padding: theme.spacing.lg,
-    },
-    formGroup: {
-      marginBottom: theme.spacing.lg,
-    },
-    label: {
-      fontSize: 16,
-      fontFamily: theme.fonts.bodySemiBold,
-      color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
-    },
-    input: {
-      backgroundColor: theme.colors.surface,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      fontSize: 16,
-      fontFamily: theme.fonts.body,
-      color: theme.colors.text,
-    },
-    inputFocused: {
-      borderColor: theme.colors.primary,
-    },
-    textArea: {
-      height: 100,
-      textAlignVertical: 'top',
-    },
-    row: {
-      flexDirection: 'row',
-      gap: theme.spacing.md,
-    },
-    halfWidth: {
-      flex: 1,
-    },
-    submitButton: {
-      backgroundColor: theme.colors.primary,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.lg,
-      alignItems: 'center',
-      marginTop: theme.spacing.lg,
-    },
-    submitButtonDisabled: {
-      backgroundColor: theme.colors.border,
-    },
-    submitButtonText: {
-      fontSize: 18,
-      fontFamily: theme.fonts.bodyBold,
-      color: '#FFFFFF',
-    },
-    infoSection: {
-      backgroundColor: theme.colors.surface,
-      margin: theme.spacing.lg,
-      padding: theme.spacing.lg,
-      borderRadius: theme.borderRadius.lg,
-      ...theme.shadows.sm,
-    },
-    infoTitle: {
-      fontSize: 18,
-      fontFamily: theme.fonts.headingSemiBold,
-      color: theme.colors.text,
-      marginBottom: theme.spacing.md,
-    },
-    infoRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: theme.spacing.sm,
-    },
-    infoIcon: {
-      marginRight: theme.spacing.md,
-    },
-    infoText: {
-      fontSize: 14,
-      fontFamily: theme.fonts.body,
-      color: theme.colors.textSecondary,
-      flex: 1,
-    },
   });
 
   return (
@@ -237,162 +307,165 @@ export default function ReservationsScreen() {
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <Text style={styles.title}>{t('reservations.title')}</Text>
-          <Text style={styles.subtitle}>{t('reservations.subtitle')}</Text>
         </View>
 
         <View style={styles.businessHoursSection}>
-          <Text style={styles.businessHoursTitle}>Business Hours & Booking Times</Text>
+          <Text style={styles.businessHoursTitle}>{t('reservations.businessHours')} & {t('reservations.bookingTimes')}</Text>
           
           <View style={styles.hoursGrid}>
             <View style={styles.hoursSection}>
-              <Text style={styles.hoursSectionTitle}>LUNCH</Text>
+              <Text style={styles.hoursSectionTitle}>{t('reservations.lunch')}</Text>
               <View style={styles.hoursRow}>
                 <Text style={styles.hoursLabel}>Monday - Friday</Text>
                 <Text style={styles.hoursTime}>12:00 – 14:00</Text>
               </View>
-              <Text style={styles.lastReservationNote}>Last reservation at 13:30</Text>
+              <Text style={styles.lastReservationNote}>{t('reservations.lastReservation')} 13:30</Text>
             </View>
 
             <View style={styles.hoursSection}>
-              <Text style={styles.hoursSectionTitle}>DINNER</Text>
+              <Text style={styles.hoursSectionTitle}>{t('reservations.dinner')}</Text>
               <View style={styles.hoursRow}>
                 <Text style={styles.hoursLabel}>Monday - Friday</Text>
                 <Text style={styles.hoursTime}>18:00 – 22:00</Text>
               </View>
               <View style={styles.hoursRow}>
-                <Text style={styles.hoursLabel}>Saturday</Text>
+                <Text style={styles.hoursLabel}>{t('reservations.saturday')}</Text>
                 <Text style={styles.hoursTime}>18:00 – 22:00</Text>
               </View>
-              <Text style={styles.lastReservationNote}>Last reservation at 20:30</Text>
+              <Text style={styles.lastReservationNote}>{t('reservations.lastReservation')} 20:30</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.formContainer}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('reservations.form.name')} *</Text>
+          <Text style={styles.sectionTitle}>{t('reservations.chooseDate')}</Text>
+          <View style={styles.calendarContainer}>
+            <Calendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('reservations.yourName')}</Text>
             <TextInput
               style={styles.input}
               value={formData.name}
               onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
-              placeholder="Enter your full name"
+              placeholder={t('reservations.namePlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
             />
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('reservations.form.email')} *</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('reservations.yourEmail')}</Text>
             <TextInput
               style={styles.input}
               value={formData.email}
               onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
-              placeholder="Enter your email address"
+              placeholder={t('reservations.emailPlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
             />
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('reservations.form.phone')}</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('reservations.contactQuestion')}</Text>
             <TextInput
               style={styles.input}
               value={formData.phone}
               onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
-              placeholder="Enter your phone number"
+              placeholder={t('reservations.phonePlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               keyboardType="phone-pad"
             />
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.formGroup, styles.halfWidth]}>
-              <Text style={styles.label}>{t('reservations.form.date')} *</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.date}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, date: text }))}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={theme.colors.textSecondary}
-              />
-            </View>
-
-            <View style={[styles.formGroup, styles.halfWidth]}>
-              <Text style={styles.label}>{t('reservations.form.time')} *</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.time}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, time: text }))}
-                placeholder="HH:MM"
-                placeholderTextColor={theme.colors.textSecondary}
-              />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('reservations.chooseTime')}</Text>
+            <View style={styles.timeRow}>
+              <View style={styles.timeInput}>
+                <TextInput
+                  style={styles.input}
+                  value={formData.startTime}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, startTime: text }))}
+                  placeholder={t('reservations.timePlaceholder')}
+                  placeholderTextColor={theme.colors.textSecondary}
+                />
+              </View>
+              <View style={styles.timeInput}>
+                <TextInput
+                  style={styles.input}
+                  value={formData.endTime}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, endTime: text }))}
+                  placeholder={t('reservations.untilPlaceholder')}
+                  placeholderTextColor={theme.colors.textSecondary}
+                />
+              </View>
             </View>
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('reservations.form.guests')}</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.guests}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, guests: text }))}
-              placeholder="Number of guests"
-              placeholderTextColor={theme.colors.textSecondary}
-              keyboardType="numeric"
-            />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('reservations.totalGuests')}</Text>
+            <View style={styles.guestSelector}>
+              <TouchableOpacity
+                style={styles.guestButton}
+                onPress={() => setFormData(prev => ({ ...prev, guests: Math.max(1, prev.guests - 1) }))}
+              >
+                <Text style={styles.guestButtonText}>-</Text>
+              </TouchableOpacity>
+              <Text style={styles.guestCount}>{formData.guests}</Text>
+              <TouchableOpacity
+                style={styles.guestButton}
+                onPress={() => setFormData(prev => ({ ...prev, guests: Math.min(6, prev.guests + 1) }))}
+              >
+                <Text style={styles.guestButtonText}>+</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('reservations.form.notes')}</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('reservations.additionalInfo')}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              value={formData.notes}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
-              placeholder="Any special requests or dietary requirements"
+              value={formData.additionalInfo}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, additionalInfo: text }))}
+              placeholder={t('reservations.messagePlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               multiline
               textAlignVertical="top"
             />
           </View>
 
-          <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            <Text style={styles.submitButtonText}>
-              {loading ? t('common.loading') : t('reservations.form.submit')}
-            </Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <Text style={styles.primaryButtonText}>
+                {loading ? 'BOOKING...' : t('reservations.bookTable')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>{t('reservations.request')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={[styles.secondaryButton, { marginTop: theme.spacing.md }]}>
+            <Text style={styles.secondaryButtonText}>{t('reservations.cancellation')}</Text>
           </TouchableOpacity>
         </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>Reservation Information</Text>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Clock size={16} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.infoText}>
-              Reservations are confirmed within 2 hours during business hours
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Users size={16} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.infoText}>
-              For parties of 8 or more, please call us directly
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <MessageSquare size={16} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.infoText}>
-              Cancellations must be made at least 2 hours before your reservation
-            </Text>
-          </View>
-        </View>
       </ScrollView>
+
+      {reservationData && (
+        <ConfirmationModal
+          visible={showConfirmation}
+          onClose={() => setShowConfirmation(false)}
+          reservationData={reservationData}
+        />
+      )}
     </SafeAreaView>
   );
 }
