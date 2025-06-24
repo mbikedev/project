@@ -66,8 +66,17 @@ export default function ReservationsScreen() {
       });
 
       if (!emailResponse.ok) {
-        const errorText = await emailResponse.text();
-        console.warn('Failed to send confirmation email:', errorText);
+        const errorData = await emailResponse.json();
+        console.warn('Failed to send confirmation email:', errorData);
+        
+        // Check if it's a configuration error
+        if (errorData.error === 'Email service not configured') {
+          Alert.alert(
+            'Email Setup Required',
+            'The email system needs to be configured. Please contact the restaurant administrator to set up the Resend API key in Supabase Edge Functions.',
+            [{ text: 'OK' }]
+          );
+        }
         return false;
       }
 

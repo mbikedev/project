@@ -13,16 +13,35 @@ serve(async (req) => {
   try {
     const { reservation, language = 'en' } = await req.json()
 
+    // Check for Resend API key
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     if (!resendApiKey) {
-      console.error('RESEND_API_KEY is not set')
-      throw new Error('Email service not configured')
+      console.error('❌ RESEND_API_KEY environment variable is not set')
+      console.error('📧 To fix this:')
+      console.error('1. Go to https://resend.com and create a free account')
+      console.error('2. Get your API key from the dashboard')
+      console.error('3. Add it to Supabase Edge Functions as RESEND_API_KEY')
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Email service not configured',
+          details: 'RESEND_API_KEY environment variable is missing',
+          setup_url: 'https://resend.com',
+          instructions: 'Add RESEND_API_KEY to Supabase Edge Functions environment variables'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
     }
+
+    console.log('✅ Resend API key found, attempting to send email...')
 
     // Email templates by language
     const templates = {
       en: {
-        subject: `Reservation Confirmation - ${reservation.reservation_number}`,
+        subject: `Reservation ${reservation.status === 'pending' ? 'Received' : 'Confirmed'} - ${reservation.reservation_number}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FFF8DC;">
             <div style="background: linear-gradient(135deg, #8B4513, #CD853F); padding: 30px; text-align: center;">
@@ -38,7 +57,7 @@ serve(async (req) => {
               <p style="color: #2F1B14; font-size: 16px; line-height: 1.6;">
                 Dear ${reservation.name},<br><br>
                 ${reservation.status === 'pending' 
-                  ? 'Thank you for your reservation request at East At West. Your reservation for ' + reservation.guests + ' guests is currently pending approval. We will contact you within 24 hours to confirm your booking.'
+                  ? `Thank you for your reservation request at East At West. Your reservation for ${reservation.guests} guests is currently pending approval. We will contact you within 24 hours to confirm your booking.`
                   : 'Thank you for choosing East At West! Your reservation has been confirmed and we look forward to welcoming you.'
                 }
               </p>
@@ -128,7 +147,7 @@ serve(async (req) => {
         `
       },
       fr: {
-        subject: `Confirmation de Réservation - ${reservation.reservation_number}`,
+        subject: `Réservation ${reservation.status === 'pending' ? 'Reçue' : 'Confirmée'} - ${reservation.reservation_number}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FFF8DC;">
             <div style="background: linear-gradient(135deg, #8B4513, #CD853F); padding: 30px; text-align: center;">
@@ -144,7 +163,7 @@ serve(async (req) => {
               <p style="color: #2F1B14; font-size: 16px; line-height: 1.6;">
                 Cher/Chère ${reservation.name},<br><br>
                 ${reservation.status === 'pending' 
-                  ? 'Merci pour votre demande de réservation chez East At West. Votre réservation pour ' + reservation.guests + ' personnes est en attente d\'approbation. Nous vous contacterons dans les 24 heures pour confirmer votre réservation.'
+                  ? `Merci pour votre demande de réservation chez East At West. Votre réservation pour ${reservation.guests} personnes est en attente d'approbation. Nous vous contacterons dans les 24 heures pour confirmer votre réservation.`
                   : 'Merci d\'avoir choisi East At West! Votre réservation a été confirmée et nous avons hâte de vous accueillir.'
                 }
               </p>
@@ -203,20 +222,6 @@ serve(async (req) => {
                 <p style="margin: 8px 0; color: #2F1B14;"><strong>🌐 Site Web:</strong> www.eastatwest.com</p>
               </div>
               
-              ${reservation.status === 'confirmed' ? `
-              <div style="background: #E8F5E8; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
-                <p style="color: #2F1B14; margin: 0; font-size: 14px;">
-                  <strong>Important:</strong> Veuillez arriver à l'heure pour votre réservation. Si vous devez annuler ou modifier votre réservation, veuillez nous contacter au moins 2 heures à l'avance.
-                </p>
-              </div>
-              ` : `
-              <div style="background: #FEF3CD; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #D97706;">
-                <p style="color: #2F1B14; margin: 0; font-size: 14px;">
-                  <strong>Prochaines Étapes:</strong> Nous examinerons votre demande de réservation et vous contacterons dans les 24 heures pour confirmer la disponibilité pour votre groupe de ${reservation.guests} personnes.
-                </p>
-              </div>
-              `}
-              
               <p style="color: #2F1B14; margin-top: 30px; text-align: center;">
                 Nous avons hâte de vous accueillir chez East At West!<br><br>
                 <strong>Cordialement,<br>
@@ -234,7 +239,7 @@ serve(async (req) => {
         `
       },
       nl: {
-        subject: `Reservering Bevestiging - ${reservation.reservation_number}`,
+        subject: `Reservering ${reservation.status === 'pending' ? 'Ontvangen' : 'Bevestigd'} - ${reservation.reservation_number}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #FFF8DC;">
             <div style="background: linear-gradient(135deg, #8B4513, #CD853F); padding: 30px; text-align: center;">
@@ -250,7 +255,7 @@ serve(async (req) => {
               <p style="color: #2F1B14; font-size: 16px; line-height: 1.6;">
                 Beste ${reservation.name},<br><br>
                 ${reservation.status === 'pending' 
-                  ? 'Bedankt voor uw reserveringsverzoek bij East At West. Uw reservering voor ' + reservation.guests + ' gasten is in afwachting van goedkeuring. We nemen binnen 24 uur contact met u op om uw reservering te bevestigen.'
+                  ? `Bedankt voor uw reserveringsverzoek bij East At West. Uw reservering voor ${reservation.guests} gasten is in afwachting van goedkeuring. We nemen binnen 24 uur contact met u op om uw reservering te bevestigen.`
                   : 'Bedankt voor het kiezen van East At West! Uw reservering is bevestigd en we kijken ernaar uit u te verwelkomen.'
                 }
               </p>
@@ -309,20 +314,6 @@ serve(async (req) => {
                 <p style="margin: 8px 0; color: #2F1B14;"><strong>🌐 Website:</strong> www.eastatwest.com</p>
               </div>
               
-              ${reservation.status === 'confirmed' ? `
-              <div style="background: #E8F5E8; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
-                <p style="color: #2F1B14; margin: 0; font-size: 14px;">
-                  <strong>Belangrijk:</strong> Kom alstublieft op tijd voor uw reservering. Als u uw reservering moet annuleren of wijzigen, neem dan minstens 2 uur van tevoren contact met ons op.
-                </p>
-              </div>
-              ` : `
-              <div style="background: #FEF3CD; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #D97706;">
-                <p style="color: #2F1B14; margin: 0; font-size: 14px;">
-                  <strong>Volgende Stappen:</strong> We zullen uw reserveringsverzoek beoordelen en binnen 24 uur contact met u opnemen om de beschikbaarheid voor uw groep van ${reservation.guests} gasten te bevestigen.
-                </p>
-              </div>
-              `}
-              
               <p style="color: #2F1B14; margin-top: 30px; text-align: center;">
                 We kijken ernaar uit u te verwelkomen bij East At West!<br><br>
                 <strong>Met vriendelijke groeten,<br>
@@ -343,6 +334,8 @@ serve(async (req) => {
 
     const template = templates[language] || templates.en
 
+    console.log(`📧 Sending ${language} email to ${reservation.email}...`)
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -359,24 +352,31 @@ serve(async (req) => {
 
     if (!res.ok) {
       const error = await res.text()
-      console.error('Resend API error:', error)
+      console.error('❌ Resend API error:', error)
       throw new Error(`Failed to send email: ${error}`)
     }
 
     const data = await res.json()
-    console.log('Email sent successfully:', data.id)
+    console.log('✅ Email sent successfully! ID:', data.id)
 
     return new Response(
-      JSON.stringify({ success: true, emailId: data.id }),
+      JSON.stringify({ 
+        success: true, 
+        emailId: data.id,
+        message: 'Email sent successfully'
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
   } catch (error) {
-    console.error('Email function error:', error)
+    console.error('❌ Email function error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
