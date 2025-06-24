@@ -39,6 +39,47 @@ export default function ReservationsScreen() {
     }
   };
 
+  const sendConfirmationEmail = async (reservation: any) => {
+    try {
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      
+      // Validate environment variables before making the request
+      if (!supabaseUrl || !supabaseAnonKey || 
+          !supabaseUrl.startsWith('https://') || 
+          supabaseUrl.includes('sb_secret_') ||
+          supabaseAnonKey.startsWith('https://')) {
+        console.warn('Email service not properly configured - skipping confirmation email');
+        return false;
+      }
+      
+      const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({
+          reservation: reservation,
+          language: i18n.language,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.warn('Failed to send confirmation email:', errorText);
+        return false;
+      }
+
+      const result = await emailResponse.json();
+      console.log('Confirmation email sent successfully:', result.emailId);
+      return true;
+    } catch (emailError) {
+      console.warn('Email sending error:', emailError);
+      return false;
+    }
+  };
+
   const handleSubmit = async () => {
     // Check if Supabase is configured
     if (!isSupabaseConfigured() || !supabase) {
@@ -103,49 +144,30 @@ export default function ReservationsScreen() {
       }
 
       // Send confirmation email
-      try {
-        const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-        const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-        
-        // Validate environment variables before making the request
-        if (supabaseUrl && supabaseAnonKey && 
-            supabaseUrl.startsWith('https://') && 
-            !supabaseUrl.includes('sb_secret_') &&
-            !supabaseAnonKey.startsWith('https://')) {
-          
-          const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseAnonKey}`,
-            },
-            body: JSON.stringify({
-              reservation: data,
-              language: i18n.language,
-            }),
-          });
-
-          if (!emailResponse.ok) {
-            console.warn('Failed to send confirmation email:', await emailResponse.text());
-          }
-        } else {
-          console.warn('Email service not configured - skipping confirmation email');
-        }
-      } catch (emailError) {
-        console.warn('Email sending error:', emailError);
-      }
-
+      const emailSent = await sendConfirmationEmail(data);
+      
       // Show appropriate message based on status
       if (status === 'pending') {
         Alert.alert(
           'Reservation Pending',
-          'Your reservation is pending. We\'ll send you a confirmation when approved.',
+          `Your reservation is pending approval. We'll contact you within 24 hours to confirm your booking.${emailSent ? ' A confirmation email has been sent to your email address.' : ''}`,
           [{ text: 'OK', onPress: () => {} }]
         );
       } else {
         // Show confirmation modal for confirmed reservations
         setReservationData(data);
         setShowConfirmation(true);
+        
+        // Show additional message about email if it failed to send
+        if (!emailSent) {
+          setTimeout(() => {
+            Alert.alert(
+              'Email Notice',
+              'Your reservation is confirmed, but we couldn\'t send the confirmation email. Please save your reservation number: ' + data.reservation_number,
+              [{ text: 'OK' }]
+            );
+          }, 2000);
+        }
       }
 
       // Reset form
