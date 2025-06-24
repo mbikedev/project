@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -55,6 +55,51 @@ interface Theme {
   };
 }
 
+const createShadows = (isDark: boolean = false) => {
+  const opacity = isDark ? 0.8 : 0.3;
+  
+  if (Platform.OS === 'web') {
+    return {
+      sm: {
+        boxShadow: `0px 1px 2px rgba(0, 0, 0, ${opacity * 0.2})`,
+        elevation: 1,
+      },
+      md: {
+        boxShadow: `0px 2px 4px rgba(0, 0, 0, ${opacity * 0.3})`,
+        elevation: 2,
+      },
+      lg: {
+        boxShadow: `0px 4px 8px rgba(0, 0, 0, ${opacity * 0.4})`,
+        elevation: 4,
+      },
+    };
+  } else {
+    return {
+      sm: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: opacity * 0.2,
+        shadowRadius: 2,
+        elevation: 1,
+      },
+      md: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: opacity * 0.3,
+        shadowRadius: 4,
+        elevation: 2,
+      },
+      lg: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: opacity * 0.4,
+        shadowRadius: 8,
+        elevation: 4,
+      },
+    };
+  }
+};
+
 const lightTheme: Theme = {
   colors: {
     primary: '#8B4513',
@@ -86,20 +131,7 @@ const lightTheme: Theme = {
     lg: 12,
     xl: 16,
   },
-  shadows: {
-    sm: {
-      boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
-      elevation: 1,
-    },
-    md: {
-      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-      elevation: 2,
-    },
-    lg: {
-      boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
-      elevation: 4,
-    },
-  },
+  shadows: createShadows(false),
   fonts: {
     heading: 'PlayfairDisplay-Regular',
     headingItalic: 'PlayfairDisplay-Italic',
@@ -133,20 +165,7 @@ const darkTheme: Theme = {
     success: '#10B981',
     warning: '#F59E0B',
   },
-  shadows: {
-    sm: {
-      boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.3)',
-      elevation: 1,
-    },
-    md: {
-      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.4)',
-      elevation: 2,
-    },
-    lg: {
-      boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.5)',
-      elevation: 4,
-    },
-  },
+  shadows: createShadows(true),
 };
 
 interface ThemeContextType {

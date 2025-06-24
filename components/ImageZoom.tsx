@@ -24,7 +24,7 @@ export function ImageZoom({ source, style, alt, resizeMode = 'cover' }: ImageZoo
 
   const styles = StyleSheet.create({
     touchableImage: {
-      cursor: Platform.OS === 'web' ? 'pointer' : 'default',
+      ...(Platform.OS === 'web' && { cursor: 'pointer' }),
     },
     modalOverlay: {
       flex: 1,

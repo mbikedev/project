@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -146,6 +146,7 @@ export function Calendar({ selectedDate, onDateSelect }: CalendarProps) {
       justifyContent: 'center',
       alignItems: 'center',
       borderRadius: theme.borderRadius.sm,
+      ...(Platform.OS === 'web' && { cursor: 'pointer' }),
     },
     emptyDay: {
       flex: 1,
@@ -173,6 +174,7 @@ export function Calendar({ selectedDate, onDateSelect }: CalendarProps) {
     },
     pastDay: {
       opacity: 0.3,
+      ...(Platform.OS === 'web' && { cursor: 'not-allowed' }),
     },
     pastDayText: {
       color: theme.colors.textSecondary,
