@@ -1,9 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+// Provide fallback values to prevent initialization errors
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Only create client if we have real values (not placeholders)
+const hasValidConfig = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder-key';
+
+export const supabase = hasValidConfig 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+// Helper function to check if Supabase is configured
+export const isSupabaseConfigured = () => hasValidConfig;
 
 export type Database = {
   public: {
@@ -94,7 +103,11 @@ export type Database = {
   };
 };
 
-async function createReservation(data) {
+async function createReservation(data: any) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Please set up your environment variables.');
+  }
+  
   const { error } = await supabase.from('reservations').insert([data]);
   if (error) throw error;
   // Optionally, call your Edge Function for sending email
