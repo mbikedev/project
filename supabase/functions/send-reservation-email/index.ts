@@ -13,30 +13,10 @@ serve(async (req) => {
   try {
     const { reservation, language = 'en' } = await req.json()
 
-    // Check for Resend API key
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
-    if (!resendApiKey) {
-      console.error('❌ RESEND_API_KEY environment variable is not set')
-      console.error('📧 To fix this:')
-      console.error('1. Go to https://resend.com and create a free account')
-      console.error('2. Get your API key from the dashboard')
-      console.error('3. Add it to Supabase Edge Functions as RESEND_API_KEY')
-      
-      return new Response(
-        JSON.stringify({ 
-          error: 'Email service not configured',
-          details: 'RESEND_API_KEY environment variable is missing',
-          setup_url: 'https://resend.com',
-          instructions: 'Add RESEND_API_KEY to Supabase Edge Functions environment variables'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      )
-    }
-
-    console.log('✅ Resend API key found, attempting to send email...')
+    // Use the provided Resend API key
+    const resendApiKey = 're_A4ywEyPm_SqMSi19DiemUVsQmenyZVDKm'
+    
+    console.log('✅ Using configured Resend API key, attempting to send email...')
 
     // Email templates by language
     const templates = {
@@ -343,7 +323,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: 'East At West <reservations@eastatwest.com>',
+        from: 'East At West <noreply@resend.dev>',
         to: [reservation.email],
         subject: template.subject,
         html: template.html,
