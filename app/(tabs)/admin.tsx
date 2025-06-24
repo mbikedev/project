@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Clock, Users, Mail, Phone, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, MoveHorizontal as MoreHorizontal } from 'lucide-react-native';
+import { Calendar, Clock, Users, Mail, Phone, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, MoveHorizontal as MoreHorizontal, Lock } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Header } from '@/components/Header';
@@ -27,15 +27,59 @@ export default function AdminScreen() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled' | 'completed'>('pending');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    loadReservations();
+    checkAdminStatus();
   }, []);
+
+  useEffect(() => {
+    if (authChecked) {
+      loadReservations();
+    }
+  }, [authChecked, isAdmin]);
+
+  const checkAdminStatus = async () => {
+    if (!isSupabaseConfigured() || !supabase) {
+      setAuthChecked(true);
+      return;
+    }
+
+    try {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // No authenticated user
+        setIsAdmin(false);
+        setAuthChecked(true);
+        return;
+      }
+
+      // Check if user has admin role in JWT claims
+      const userRole = session.user?.user_metadata?.role || 
+                      session.user?.app_metadata?.role ||
+                      (session.user as any)?.role;
+      
+      setIsAdmin(userRole === 'admin');
+      setAuthChecked(true);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+      setAuthChecked(true);
+    }
+  };
 
   const loadReservations = async () => {
     if (!isSupabaseConfigured() || !supabase) {
       Alert.alert('Configuration Error', 'Admin panel requires Supabase configuration.');
+      setLoading(false);
+      return;
+    }
+
+    if (!isAdmin) {
       setLoading(false);
       return;
     }
@@ -48,7 +92,11 @@ export default function AdminScreen() {
 
       if (error) {
         console.error('Error loading reservations:', error);
-        Alert.alert('Error', 'Failed to load reservations');
+        if (error.code === 'PGRST116' || error.message.includes('permission')) {
+          Alert.alert('Access Denied', 'You do not have admin permissions to view reservations.');
+        } else {
+          Alert.alert('Error', 'Failed to load reservations');
+        }
       } else {
         setReservations(data || []);
       }
@@ -67,7 +115,10 @@ export default function AdminScreen() {
   };
 
   const updateReservationStatus = async (id: string, newStatus: 'confirmed' | 'cancelled' | 'completed') => {
-    if (!supabase) return;
+    if (!supabase || !isAdmin) {
+      Alert.alert('Access Denied', 'You do not have permission to update reservations.');
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -77,7 +128,11 @@ export default function AdminScreen() {
 
       if (error) {
         console.error('Error updating reservation:', error);
-        Alert.alert('Error', 'Failed to update reservation status');
+        if (error.code === 'PGRST116' || error.message.includes('permission')) {
+          Alert.alert('Access Denied', 'You do not have admin permissions to update reservations.');
+        } else {
+          Alert.alert('Error', 'Failed to update reservation status');
+        }
       } else {
         Alert.alert('Success', `Reservation ${newStatus} successfully`);
         loadReservations(); // Refresh the list
@@ -89,6 +144,11 @@ export default function AdminScreen() {
   };
 
   const showStatusOptions = (reservation: Reservation) => {
+    if (!isAdmin) {
+      Alert.alert('Access Denied', 'You do not have permission to update reservations.');
+      return;
+    }
+
     const options = [
       { text: 'Confirm', onPress: () => updateReservationStatus(reservation.id, 'confirmed') },
       { text: 'Cancel', onPress: () => updateReservationStatus(reservation.id, 'cancelled') },
@@ -248,10 +308,16 @@ export default function AdminScreen() {
       alignItems: 'center',
       marginTop: theme.spacing.md,
     },
+    disabledActionButton: {
+      backgroundColor: theme.colors.border,
+    },
     actionButtonText: {
       fontSize: 14,
       fontFamily: theme.fonts.bodySemiBold,
       color: '#FFFFFF',
+    },
+    disabledActionButtonText: {
+      color: theme.colors.textSecondary,
     },
     emptyState: {
       flex: 1,
@@ -276,14 +342,56 @@ export default function AdminScreen() {
       color: theme.colors.textSecondary,
       marginTop: theme.spacing.md,
     },
+    accessDeniedContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.spacing.xl,
+    },
+    accessDeniedIcon: {
+      marginBottom: theme.spacing.lg,
+    },
+    accessDeniedTitle: {
+      fontSize: 20,
+      fontFamily: theme.fonts.headingBold,
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    accessDeniedText: {
+      fontSize: 16,
+      fontFamily: theme.fonts.body,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 24,
+    },
   });
 
-  if (loading) {
+  if (!authChecked || loading) {
     return (
       <SafeAreaView style={styles.container}>
         <Header />
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading reservations...</Text>
+          <Text style={styles.loadingText}>
+            {!authChecked ? 'Checking permissions...' : 'Loading reservations...'}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header />
+        <View style={styles.accessDeniedContainer}>
+          <View style={styles.accessDeniedIcon}>
+            <Lock size={64} color={theme.colors.textSecondary} />
+          </View>
+          <Text style={styles.accessDeniedTitle}>Access Denied</Text>
+          <Text style={styles.accessDeniedText}>
+            You need admin privileges to access this panel. Please contact your administrator if you believe this is an error.
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -411,10 +519,19 @@ export default function AdminScreen() {
               </View>
 
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[
+                  styles.actionButton,
+                  !isAdmin && styles.disabledActionButton,
+                ]}
                 onPress={() => showStatusOptions(reservation)}
+                disabled={!isAdmin}
               >
-                <Text style={styles.actionButtonText}>Update Status</Text>
+                <Text style={[
+                  styles.actionButtonText,
+                  !isAdmin && styles.disabledActionButtonText,
+                ]}>
+                  Update Status
+                </Text>
               </TouchableOpacity>
             </View>
           ))
