@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Clock, Users, Mail, Phone, CheckCircle, XCircle, AlertCircle, MoreHorizontal } from 'lucide-react-native';
+import { Calendar, Clock, Users, Mail, Phone, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, MoveHorizontal as MoreHorizontal } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { Header } from '@/components/Header';
