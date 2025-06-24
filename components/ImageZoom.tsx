@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Image, TouchableOpacity, Modal, Dimensions, StyleSheet, Text, ImageSourcePropType } from 'react-native';
+import { View, Image, TouchableOpacity, Modal, Dimensions, StyleSheet, Text, ImageSourcePropType, Platform } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -24,7 +24,7 @@ export function ImageZoom({ source, style, alt, resizeMode = 'cover' }: ImageZoo
 
   const styles = StyleSheet.create({
     touchableImage: {
-      cursor: 'pointer',
+      cursor: Platform.OS === 'web' ? 'pointer' : 'default',
     },
     modalOverlay: {
       flex: 1,
@@ -42,7 +42,6 @@ export function ImageZoom({ source, style, alt, resizeMode = 'cover' }: ImageZoo
     modalImage: {
       width: Dimensions.get('window').width * 0.95,
       height: Dimensions.get('window').height * 0.85,
-      resizeMode: 'contain',
     },
     closeButton: {
       position: 'absolute',
@@ -65,9 +64,13 @@ export function ImageZoom({ source, style, alt, resizeMode = 'cover' }: ImageZoo
       fontSize: 18,
       fontFamily: theme.fonts.headingSemiBold,
       color: '#FFFFFF',
-      textShadowColor: 'rgba(0, 0, 0, 0.8)',
-      textShadowOffset: { width: 1, height: 1 },
-      textShadowRadius: 3,
+      ...(Platform.OS === 'web' ? {
+        textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)',
+      } : {
+        textShadowColor: 'rgba(0, 0, 0, 0.8)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
+      }),
       paddingHorizontal: theme.spacing.md,
     },
   });
