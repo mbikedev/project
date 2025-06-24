@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Chrome as Home, Menu, Calendar, ShoppingBag } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -18,6 +19,9 @@ export default function TabLayout() {
           height: 80,
           paddingTop: 8,
           paddingBottom: 8,
+          ...(Platform.OS === 'web' && { 
+            // Remove deprecated pointerEvents style
+          }),
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,

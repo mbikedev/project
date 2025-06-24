@@ -37,7 +37,6 @@ export default function HomeScreen() {
     heroImage: {
       width: '100%',
       height: '100%',
-      resizeMode: 'cover',
     },
     heroOverlay: {
       ...StyleSheet.absoluteFillObject,

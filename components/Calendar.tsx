@@ -117,6 +117,7 @@ export function Calendar({ selectedDate, onDateSelect }: CalendarProps) {
     navButton: {
       padding: theme.spacing.xs,
       borderRadius: theme.borderRadius.sm,
+      ...(Platform.OS === 'web' && { cursor: 'pointer' }),
     },
     weekDaysContainer: {
       flexDirection: 'row',
