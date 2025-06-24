@@ -41,7 +41,7 @@ export type Database = {
           time: string;
           guests: number;
           additional_info: string | null;
-          status: 'confirmed' | 'cancelled' | 'completed';
+          status: 'confirmed' | 'cancelled' | 'completed' | 'pending';
           created_at: string;
         };
         Insert: {
@@ -54,7 +54,7 @@ export type Database = {
           time: string;
           guests: number;
           additional_info?: string | null;
-          status?: 'confirmed' | 'cancelled' | 'completed';
+          status?: 'confirmed' | 'cancelled' | 'completed' | 'pending';
           created_at?: string;
         };
         Update: {
@@ -67,7 +67,7 @@ export type Database = {
           time?: string;
           guests?: number;
           additional_info?: string | null;
-          status?: 'confirmed' | 'cancelled' | 'completed';
+          status?: 'confirmed' | 'cancelled' | 'completed' | 'pending';
           created_at?: string;
         };
       };

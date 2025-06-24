@@ -66,8 +66,8 @@ export default function ReservationsScreen() {
       Alert.alert('Error', 'Please enter start time');
       return;
     }
-    if (formData.guests < 1 || formData.guests > 6) {
-      Alert.alert('Error', 'Number of guests must be between 1 and 6');
+    if (formData.guests < 1 || formData.guests > 22) {
+      Alert.alert('Error', 'Number of guests must be between 1 and 22');
       return;
     }
 
@@ -77,6 +77,9 @@ export default function ReservationsScreen() {
       const timeString = formData.endTime 
         ? `${formData.startTime} - ${formData.endTime}`
         : formData.startTime;
+
+      // Determine status based on guest count
+      const status = formData.guests <= 6 ? 'confirmed' : 'pending';
 
       // Insert reservation into Supabase
       const { data, error } = await supabase
@@ -89,6 +92,7 @@ export default function ReservationsScreen() {
           time: timeString,
           guests: formData.guests,
           additional_info: formData.additionalInfo.trim() || null,
+          status: status,
         }])
         .select()
         .single();
@@ -131,9 +135,18 @@ export default function ReservationsScreen() {
         console.warn('Email sending error:', emailError);
       }
 
-      // Show confirmation modal
-      setReservationData(data);
-      setShowConfirmation(true);
+      // Show appropriate message based on status
+      if (status === 'pending') {
+        Alert.alert(
+          'Reservation Pending',
+          'Your reservation is pending. We\'ll send you a confirmation when approved.',
+          [{ text: 'OK', onPress: () => {} }]
+        );
+      } else {
+        // Show confirmation modal for confirmed reservations
+        setReservationData(data);
+        setShowConfirmation(true);
+      }
 
       // Reset form
       setFormData({
@@ -260,6 +273,13 @@ export default function ReservationsScreen() {
       marginHorizontal: theme.spacing.lg,
       minWidth: 30,
       textAlign: 'center',
+    },
+    guestNote: {
+      fontSize: 12,
+      fontFamily: theme.fonts.body,
+      color: theme.colors.textSecondary,
+      marginTop: theme.spacing.xs,
+      fontStyle: 'italic',
     },
     textArea: {
       height: 100,
@@ -454,11 +474,17 @@ export default function ReservationsScreen() {
               <Text style={styles.guestCount}>{formData.guests}</Text>
               <TouchableOpacity
                 style={styles.guestButton}
-                onPress={() => setFormData(prev => ({ ...prev, guests: Math.min(6, prev.guests + 1) }))}
+                onPress={() => setFormData(prev => ({ ...prev, guests: Math.min(22, prev.guests + 1) }))}
               >
                 <Text style={styles.guestButtonText}>+</Text>
               </TouchableOpacity>
             </View>
+            <Text style={styles.guestNote}>
+              {formData.guests <= 6 
+                ? 'Reservations for 1-6 people are confirmed automatically'
+                : 'Reservations for 7+ people require approval and will be pending'
+              }
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>
