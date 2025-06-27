@@ -30,11 +30,18 @@ const hasValidConfig = !!(
   isValidKey(supabaseAnonKey)
 );
 
-// Create client only if configuration is valid
+// Create client only if configuration is valid, with enhanced error handling
 export const supabase = hasValidConfig 
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false, // Disable session persistence to avoid async issues during startup
+        autoRefreshToken: false, // Disable auto refresh to prevent startup promises
+        detectSessionInUrl: false, // Disable URL session detection
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'eastatwest-restaurant@1.0.0',
+        },
       },
     })
   : null;
@@ -44,14 +51,32 @@ export const isSupabaseConfigured = () => {
   return hasValidConfig && !!supabase;
 };
 
-// Add global error handler for unhandled promise rejections
-if (typeof window !== 'undefined') {
-  window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
-    // Prevent the default behavior (which would crash the app)
-    event.preventDefault();
-  });
-}
+// Enhanced global error handler for both browser and React Native environments
+const setupGlobalErrorHandler = () => {
+  // Handle unhandled promise rejections
+  const handleUnhandledRejection = (event: any) => {
+    console.error('Unhandled promise rejection:', event.reason || event);
+    // Prevent the default behavior in browser environments
+    if (event.preventDefault) {
+      event.preventDefault();
+    }
+  };
+
+  // Browser environment
+  if (typeof window !== 'undefined') {
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+  }
+  
+  // React Native/Node environment
+  if (typeof process !== 'undefined' && process.on) {
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+  }
+};
+
+// Set up error handling
+setupGlobalErrorHandler();
 
 // Only log in development
 if (process.env.NODE_ENV === 'development') {
