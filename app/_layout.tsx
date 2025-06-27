@@ -22,8 +22,14 @@ import {
 } from '@expo-google-fonts/playfair-display';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Prevent splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync();
+// Prevent splash screen from auto-hiding with proper error handling
+(async () => {
+  try {
+    await SplashScreen.preventAutoHideAsync();
+  } catch (e) {
+    console.warn('Failed to prevent splash screen auto-hide:', e);
+  }
+})();
 
 export default function RootLayout() {
   useFrameworkReady();
