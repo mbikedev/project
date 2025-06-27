@@ -32,13 +32,26 @@ const hasValidConfig = !!(
 
 // Create client only if configuration is valid
 export const supabase = hasValidConfig 
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false, // Disable session persistence to avoid async issues during startup
+      },
+    })
   : null;
 
 // Helper function to check if Supabase is configured
 export const isSupabaseConfigured = () => {
   return hasValidConfig && !!supabase;
 };
+
+// Add global error handler for unhandled promise rejections
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Prevent the default behavior (which would crash the app)
+    event.preventDefault();
+  });
+}
 
 // Only log in development
 if (process.env.NODE_ENV === 'development') {
